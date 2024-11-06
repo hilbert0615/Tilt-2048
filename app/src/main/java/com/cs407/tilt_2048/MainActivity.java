@@ -13,169 +13,28 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.content.Intent;
 
 public class MainActivity extends AppCompatActivity {
-
-    private MainGame mainGame;
-    private TextView[][] gridTextViews = new TextView[4][4];
-    private GridLayout gridLayout;
-    private GestureDetector gestureDetector;
-    private SensorManager sensorManager;
-    private Sensor accelerometer;
-    private boolean isGyroscopeMode = false;
-    private static final long SWIPE_COOLDOWN = 500; // 滑动冷却时间，单位毫秒
-    private long lastSwipeTime = 0; // 上一次滑动的时间
-    private static final float TILT_THRESHOLD = 5.0f; // 初始倾斜触发阈值
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // 初始化传感器
-        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-
-        // 初始化 UI
-        gridLayout = findViewById(R.id.gridLayout);
-        initGrid();
-        mainGame = new MainGame(this, gridTextViews);
-
-        TextView tvBestScore = findViewById(R.id.tvBestScore);
-        TextView tvScore = findViewById(R.id.tvScore);
-        mainGame.updateBestScore(tvBestScore);
-        mainGame.updateScore(tvScore);
-
-        // 开始新游戏
-        mainGame.startNewGame();
-
-        Switch switchControlMode = findViewById(R.id.switchControlMode);
-        switchControlMode.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            isGyroscopeMode = isChecked;
-            switchControlMode.setText(isGyroscopeMode ? "Gyroscope Enabled" : "Enable Gyroscope");
-
-            if (isGyroscopeMode) {
-                startGyroscopeControl();
-            } else {
-                stopGyroscopeControl();
-            }
+        // “New Game” 按钮点击事件，启动 GameActivity 并开始新游戏
+        findViewById(R.id.button_new_game).setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, GameActivity.class);
+            intent.putExtra("startNewGame", true); // 传递一个标记，指示开始新游戏
+            startActivity(intent);
         });
 
-        findViewById(R.id.btnNewGame).setOnClickListener(v -> mainGame.startNewGame());
-        findViewById(R.id.btnUndo).setOnClickListener(v -> mainGame.restorePreviousState());
-
-        gestureDetector = new GestureDetector(this, new GestureListener());
+        // “Resume” 按钮点击事件，启动 GameActivity 并恢复游戏
+        findViewById(R.id.button_resume).setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, GameActivity.class);
+            intent.putExtra("startNewGame", false); // 传递一个标记，指示恢复游戏
+            startActivity(intent);
+        });
     }
 
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        if (!isGyroscopeMode) {
-            return gestureDetector.onTouchEvent(event);
-        }
-        return super.onTouchEvent(event);
-    }
-
-    private void initGrid() {
-        for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 4; j++) {
-                TextView cell = (TextView) gridLayout.getChildAt(i * 4 + j);
-                gridTextViews[i][j] = cell;
-            }
-        }
-    }
-
-    private class GestureListener extends GestureDetector.SimpleOnGestureListener {
-        private static final int SWIPE_THRESHOLD = 100;
-        private static final int SWIPE_VELOCITY_THRESHOLD = 100;
-
-        @Override
-        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            float diffX = e2.getX() - e1.getX();
-            float diffY = e2.getY() - e1.getY();
-
-            try {
-                if (Math.abs(diffX) > Math.abs(diffY)) {
-                    if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
-                        if (diffX > 0) {
-                            mainGame.onSwipeRight();
-                        } else {
-                            mainGame.onSwipeLeft();
-                        }
-                        return true;
-                    }
-                } else {
-                    if (Math.abs(diffY) > SWIPE_THRESHOLD && Math.abs(velocityY) > SWIPE_VELOCITY_THRESHOLD) {
-                        if (diffY > 0) {
-                            mainGame.onSwipeDown();
-                        } else {
-                            mainGame.onSwipeUp();
-                        }
-                        return true;
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            return false;
-        }
-    }
-
-    private SensorEventListener sensorEventListener = new SensorEventListener() {
-        @Override
-        public void onSensorChanged(SensorEvent event) {
-            if (isGyroscopeMode) {
-                long currentTime = System.currentTimeMillis();
-                if (currentTime - lastSwipeTime < SWIPE_COOLDOWN) {
-                    return;
-                }
-
-                float x = event.values[0];
-                float y = event.values[1];
-
-                // 设定一个触发倾斜阈值
-                if (Math.abs(x) > TILT_THRESHOLD || Math.abs(y) > TILT_THRESHOLD) {
-                    if (Math.abs(x) > Math.abs(y)) {
-                        if (x > TILT_THRESHOLD) {
-                            mainGame.onSwipeLeft();
-                        } else if (x < -TILT_THRESHOLD) {
-                            mainGame.onSwipeRight();
-                        }
-                    } else {
-                        if (y > TILT_THRESHOLD) {
-                            mainGame.onSwipeUp();
-                        } else if (y < -TILT_THRESHOLD) {
-                            mainGame.onSwipeDown();
-                        }
-                    }
-                    lastSwipeTime = currentTime;
-                }
-            }
-        }
-
-        @Override
-        public void onAccuracyChanged(Sensor sensor, int accuracy) {
-        }
-    };
-
-    private void startGyroscopeControl() {
-        sensorManager.registerListener(sensorEventListener, accelerometer, SensorManager.SENSOR_DELAY_UI);
-    }
-
-    private void stopGyroscopeControl() {
-        sensorManager.unregisterListener(sensorEventListener);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (isGyroscopeMode) {
-            startGyroscopeControl();
-        }
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        stopGyroscopeControl();
-    }
 }

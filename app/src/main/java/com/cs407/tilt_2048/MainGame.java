@@ -12,6 +12,8 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 import java.util.ArrayList;
 import java.util.Random;
+import android.os.Bundle;
+import androidx.appcompat.app.AppCompatActivity;
 
 public class MainGame {
 
