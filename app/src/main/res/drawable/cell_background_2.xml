@@ -1,0 +1,4 @@
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#EEE4DA" /> <!-- 背景颜色适合数字2 -->
+    <corners android:radius="8dp" /> <!-- 圆角 -->
+</shape>

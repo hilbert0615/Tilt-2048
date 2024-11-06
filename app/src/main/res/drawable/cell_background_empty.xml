@@ -1,0 +1,4 @@
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#CCC0B3" /> <!-- 空格子的背景颜色 -->
+    <corners android:radius="8dp" />
+</shape>
