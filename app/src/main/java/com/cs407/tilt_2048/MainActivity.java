@@ -1,5 +1,6 @@
 package com.cs407.tilt_2048;
 
+import android.widget.Switch;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.graphics.drawable.Drawable;
@@ -15,8 +16,12 @@ import java.util.Random;
 import androidx.core.content.ContextCompat;
 import android.graphics.Color;
 import android.animation.Animator;
-
-
+import android.content.SharedPreferences;
+import android.content.Context;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -31,11 +36,26 @@ public class MainActivity extends AppCompatActivity {
     private static final String KEY_BEST_SCORE = "BestScore";
     private int bestScore = 0;
 
+    private int[][] previousGrid = new int[4][4];
+    private int previousScore = 0;
+
+    private SensorManager sensorManager;
+    private Sensor accelerometer;
+    private boolean isGyroscopeMode = false;
+
+    private static final long SWIPE_COOLDOWN = 500; // 滑动冷却时间，单位毫秒
+    private long lastSwipeTime = 0; // 上一次滑动的时间
+    private static final float TILT_THRESHOLD = 5.0f; // 初始倾斜触发阈值
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // 初始化传感器
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 
         // 加载最高分
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
@@ -48,10 +68,29 @@ public class MainActivity extends AppCompatActivity {
 
         startNewGame();
 
+        Switch switchControlMode = findViewById(R.id.switchControlMode);
+        switchControlMode.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            isGyroscopeMode = isChecked;
+            switchControlMode.setText(isGyroscopeMode ? "Gyroscope Enabled" : "Enable Gyroscope");
+
+            if (isGyroscopeMode) {
+                startGyroscopeControl();
+            } else {
+                stopGyroscopeControl();
+            }
+        });
+
         findViewById(R.id.btnNewGame).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 startNewGame();
+            }
+        });
+
+        findViewById(R.id.btnUndo).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                restorePreviousState();
             }
         });
 
@@ -61,7 +100,10 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        return gestureDetector.onTouchEvent(event);
+        if (!isGyroscopeMode) {  // 仅在非陀螺仪模式下启用手势
+            return gestureDetector.onTouchEvent(event);
+        }
+        return super.onTouchEvent(event);
     }
 
     // 手势监听器
@@ -102,7 +144,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // 初始化 TextViews 并绑定到 gridTextViews 数组
     private void initGrid() {
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
@@ -116,7 +157,7 @@ public class MainActivity extends AppCompatActivity {
     private void startNewGame() {
         if (score > bestScore) {
             bestScore = score;
-            saveBestScore(); // 保存新的最高分
+            saveBestScore();
             updateBestScore();
         }
         score = 0;
@@ -143,7 +184,7 @@ public class MainActivity extends AppCompatActivity {
         tvBestScore.setText("Best: " + bestScore);
     }
 
-    // 添加一个随机数字（2 或 4）
+    // 添加一个随机数字
     private void addRandomNumber() {
         int row, col;
         do {
@@ -153,7 +194,7 @@ public class MainActivity extends AppCompatActivity {
         grid[row][col] = random.nextInt(10) < 9 ? 2 : 4;
     }
 
-    // 更新 UI 显示
+    // 更新 UI
     private void updateGridUI() {
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
@@ -161,27 +202,25 @@ public class MainActivity extends AppCompatActivity {
                 TextView cell = gridTextViews[i][j];
                 if (value == 0) {
                     cell.setText("");
-                    cell.setBackground(getBackgroundDrawableForValue(value)); // 使用空格子背景
+                    cell.setBackground(getBackgroundDrawableForValue(value));
                 } else {
                     cell.setText(String.valueOf(value));
-                    cell.setBackground(getBackgroundDrawableForValue(value)); // 使用对应数值的背景
-                    cell.setTextSize(34); // 设置字体大小
-                    cell.setTypeface(null, android.graphics.Typeface.BOLD); // 设置字体加粗
-                    cell.setTextColor(value >= 8 ? Color.WHITE : Color.parseColor("#776E65")); // 高亮字体颜色
+                    cell.setBackground(getBackgroundDrawableForValue(value));
+                    cell.setTextSize(34);
+                    cell.setTypeface(null, android.graphics.Typeface.BOLD);
+                    cell.setTextColor(value >= 8 ? Color.WHITE : Color.parseColor("#776E65"));
                 }
             }
         }
         updateScore();
     }
 
-
-    // 更新分数显示
+    // 更新分数
     private void updateScore() {
         TextView tvScore = findViewById(R.id.tvScore);
         tvScore.setText("Score: " + score);
     }
 
-    // 根据数值返回不同的背景 drawable
     private Drawable getBackgroundDrawableForValue(int value) {
         switch (value) {
             case 2:
@@ -207,7 +246,7 @@ public class MainActivity extends AppCompatActivity {
             case 2048:
                 return ContextCompat.getDrawable(this, R.drawable.cell_background_2048);
             default:
-                return ContextCompat.getDrawable(this, R.drawable.cell_background_empty); // 空格子的背景
+                return ContextCompat.getDrawable(this, R.drawable.cell_background_empty);
         }
     }
 
@@ -222,7 +261,7 @@ public class MainActivity extends AppCompatActivity {
 
             TextView cell = gridTextViews[row][col];
 
-            // 滑动动画
+            // 滑动
             if ("move".equals(action)) {
                 ObjectAnimator animator;
                 switch (direction) {
@@ -239,13 +278,13 @@ public class MainActivity extends AppCompatActivity {
                         animator = ObjectAnimator.ofFloat(cell, "translationY", translation, 0f);
                         break;
                     default:
-                        animator = ObjectAnimator.ofFloat(cell, "translationX", 0f, 0f); // 默认不动
+                        animator = ObjectAnimator.ofFloat(cell, "translationX", 0f, 0f);
                 }
                 animator.setDuration(200);
                 animations.add(animator);
             }
 
-            // 合并动画
+            // 合并
             if ("merge".equals(action)) {
                 ObjectAnimator scaleX = ObjectAnimator.ofFloat(cell, "scaleX", 1f, 1.2f, 1f);
                 ObjectAnimator scaleY = ObjectAnimator.ofFloat(cell, "scaleY", 1f, 1.2f, 1f);
@@ -262,6 +301,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void onSwipeLeft() {
+        backupGameState();
+
         ArrayList<int[]> changes = new ArrayList<>();
         for (int i = 0; i < 4; i++) {
             slideAndMergeRow(grid[i], changes, i);
@@ -276,6 +317,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void onSwipeRight() {
+        backupGameState();
+
         ArrayList<int[]> changes = new ArrayList<>();
         for (int i = 0; i < 4; i++) {
             reverseArray(grid[i]);
@@ -292,6 +335,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void onSwipeUp() {
+        backupGameState();
+
         ArrayList<int[]> changes = new ArrayList<>();
         for (int j = 0; j < 4; j++) {
             int[] column = new int[4];
@@ -309,6 +354,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void onSwipeDown() {
+        backupGameState();
+
         ArrayList<int[]> changes = new ArrayList<>();
         for (int j = 0; j < 4; j++) {
             int[] column = new int[4];
@@ -351,7 +398,7 @@ public class MainActivity extends AppCompatActivity {
             if (newRow[i] != 0) {
                 row[index++] = newRow[i];
                 if (newRow[i] != row[i]) {
-                    changes.add(new int[]{rowIndex, i, 1}); // 移动
+                    changes.add(new int[]{rowIndex, i, 1});
                 }
             } else {
                 row[index++] = 0;
@@ -393,7 +440,6 @@ public class MainActivity extends AppCompatActivity {
         return true; // 无法移动或合并，游戏结束
     }
 
-
     private void showGameOverDialog() {
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Game Over")
@@ -403,4 +449,80 @@ public class MainActivity extends AppCompatActivity {
                 .setCancelable(false)
                 .show();
     }
+
+    private void backupGameState() {
+        for (int i = 0; i < 4; i++) {
+            System.arraycopy(grid[i], 0, previousGrid[i], 0, 4);
+        }
+        previousScore = score;
+    }
+
+    private void restorePreviousState() {
+        for (int i = 0; i < 4; i++) {
+            System.arraycopy(previousGrid[i], 0, grid[i], 0, 4);
+        }
+        score = previousScore;
+        updateGridUI();
+        updateScore();
+    }
+
+    private SensorEventListener sensorEventListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            if (isGyroscopeMode) {
+                long currentTime = System.currentTimeMillis();
+                if (currentTime - lastSwipeTime < SWIPE_COOLDOWN) {
+                    return;
+                }
+
+                float x = event.values[0];
+                float y = event.values[1];
+
+                // 设定一个触发倾斜阈值
+                if (Math.abs(x) > TILT_THRESHOLD || Math.abs(y) > TILT_THRESHOLD) {
+                    if (Math.abs(x) > Math.abs(y)) {
+                        if (x > TILT_THRESHOLD) {
+                            onSwipeLeft();
+                        } else if (x < -TILT_THRESHOLD) {
+                            onSwipeRight();
+                        }
+                    } else {
+                        if (y > TILT_THRESHOLD) {
+                            onSwipeUp();
+                        } else if (y < -TILT_THRESHOLD) {
+                            onSwipeDown();
+                        }
+                    }
+                    lastSwipeTime = currentTime;
+                }
+            }
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        }
+    };
+
+    private void startGyroscopeControl() {
+        sensorManager.registerListener(sensorEventListener, accelerometer, SensorManager.SENSOR_DELAY_UI);
+    }
+
+    private void stopGyroscopeControl() {
+        sensorManager.unregisterListener(sensorEventListener);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (isGyroscopeMode) {
+            startGyroscopeControl();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        stopGyroscopeControl();
+    }
+
 }

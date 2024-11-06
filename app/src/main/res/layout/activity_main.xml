@@ -252,4 +252,19 @@
 
     </GridLayout>
 
+    <Switch
+        android:id="@+id/switchControlMode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="12dp"
+        android:layout_marginEnd="14dp"
+        android:layout_marginBottom="14dp"
+        android:padding="8dp"
+        android:text="Enable Gyroscope "
+        android:textColor="#54534d"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
