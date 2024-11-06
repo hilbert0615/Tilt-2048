@@ -4,7 +4,6 @@
     android:layout_height="match_parent"
     android:background="@color/light_yellow">
 
-    <!-- 顶部图标 -->
     <ImageView
         android:id="@+id/icon_location"
         android:layout_width="30dp"
@@ -31,7 +30,7 @@
         android:textColor="@color/dark_green"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="100dp"
-        android:rotation="-15" />
+        android:rotation="-10" />
 
     <TextView
         android:id="@+id/text_tilt"
@@ -43,7 +42,7 @@
         android:layout_below="@id/text_2048"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="10dp"
-        android:rotation="15" />
+        android:rotation="10" />
 
     <!-- 四个按钮 -->
     <LinearLayout
@@ -76,10 +75,10 @@
             android:layout_margin="16dp" />
 
         <Button
-            android:id="@+id/button_about_us"
+            android:id="@+id/button_about"
             android:layout_width="200dp"
             android:layout_height="wrap_content"
-            android:text="About Us"
+            android:text="About"
             android:textSize="28sp"
             android:textColor="@color/blue"
             android:background="@drawable/button_background"
@@ -100,7 +99,7 @@
         android:id="@+id/text_version"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Version: 0.1"
+        android:text="Version: 0.0.1"
         android:textSize="12sp"
         android:textColor="@color/gray"
         android:layout_alignParentBottom="true"

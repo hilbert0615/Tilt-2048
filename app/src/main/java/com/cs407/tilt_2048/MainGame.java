@@ -23,6 +23,7 @@ public class MainGame {
     private final TextView[][] gridTextViews;
     private int score = 0;
     private int bestScore = 0;
+    private final TextView tvScore;
 
     private final int[][] previousGrid = new int[4][4];
     private int previousScore = 0;
@@ -30,9 +31,10 @@ public class MainGame {
     private static final String PREFS_NAME = "GamePrefs";
     private static final String KEY_BEST_SCORE = "BestScore";
 
-    public MainGame(Context context, TextView[][] gridTextViews) {
+    public MainGame(Context context, TextView[][] gridTextViews, TextView tvScore) {
         this.context = context;
         this.gridTextViews = gridTextViews;
+        this.tvScore = tvScore;
         loadBestScore();
     }
 
@@ -85,6 +87,28 @@ public class MainGame {
 
     public void updateBestScore(TextView tvBestScore) {
         tvBestScore.setText("Best: " + bestScore);
+    }
+
+    // 获取当前分数
+    public int getScore() {
+        return score;
+    }
+
+    // 设置分数
+    public void setScore(int score) {
+        this.score = score;
+    }
+
+    // 获取网格数据
+    public int getGridValue(int row, int col) {
+        return grid[row][col];
+    }
+
+    // 设置网格数据
+    public void setGrid(int[][] grid) {
+        for (int i = 0; i < 4; i++) {
+            System.arraycopy(grid[i], 0, this.grid[i], 0, 4);
+        }
     }
 
     private void resetGrid() {
@@ -196,7 +220,7 @@ public class MainGame {
         finalSet.start();
     }
 
-    // 滑动逻辑实现（将方法改为public以便MainActivity访问）
+    // 滑动逻辑
     public void onSwipeLeft() {
         backupGameState();
 
@@ -207,6 +231,8 @@ public class MainGame {
         addRandomNumber();
         updateGridUI();
         animateGridChange("LEFT", changes);
+
+        updateScore(tvScore);
 
         if (isGameOver()) {
             showGameOverDialog();
@@ -226,6 +252,8 @@ public class MainGame {
         updateGridUI();
         animateGridChange("RIGHT", changes);
 
+        updateScore(tvScore);
+
         if (isGameOver()) {
             showGameOverDialog();
         }
@@ -244,6 +272,8 @@ public class MainGame {
         addRandomNumber();
         updateGridUI();
         animateGridChange("UP", changes);
+
+        updateScore(tvScore);
 
         if (isGameOver()) {
             showGameOverDialog();
@@ -265,6 +295,8 @@ public class MainGame {
         addRandomNumber();
         updateGridUI();
         animateGridChange("DOWN", changes);
+
+        updateScore(tvScore);
 
         if (isGameOver()) {
             showGameOverDialog();

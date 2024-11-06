@@ -22,18 +22,29 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // “New Game” 按钮点击事件，启动 GameActivity 并开始新游戏
+        // New Game
         findViewById(R.id.button_new_game).setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, GameActivity.class);
-            intent.putExtra("startNewGame", true); // 传递一个标记，指示开始新游戏
+            intent.putExtra("startNewGame", true);
             startActivity(intent);
         });
 
-        // “Resume” 按钮点击事件，启动 GameActivity 并恢复游戏
+        // Resume
         findViewById(R.id.button_resume).setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, GameActivity.class);
-            intent.putExtra("startNewGame", false); // 传递一个标记，指示恢复游戏
+            intent.putExtra("startNewGame", false);
             startActivity(intent);
+        });
+
+        // About
+        findViewById(R.id.button_about).setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, AboutActivity.class);
+            startActivity(intent);
+        });
+
+        // Quit
+        findViewById(R.id.button_quit).setOnClickListener(v -> {
+            finishAffinity();
         });
     }
 

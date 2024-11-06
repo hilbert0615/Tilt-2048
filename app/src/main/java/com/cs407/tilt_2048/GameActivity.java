@@ -1,9 +1,10 @@
 package com.cs407.tilt_2048;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.GridLayout;
-import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Switch;
 import androidx.appcompat.app.AppCompatActivity;
@@ -27,13 +28,36 @@ public class GameActivity extends AppCompatActivity {
     private long lastSwipeTime = 0; // 上一次滑动的时间
     private static final float TILT_THRESHOLD = 5.0f; // 初始倾斜触发阈值
 
+    private static final String PREFS_NAME = "GamePrefs";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game);
 
+        // 初始化 UI
+        gridLayout = findViewById(R.id.gridLayout);
+        initGrid();
+
+        TextView tvScore = findViewById(R.id.tvScore);
+        mainGame = new MainGame(this, gridTextViews, tvScore);
+
+        // 检查是否从 MainActivity 传递了“startNewGame”标记
+        boolean startNewGame = getIntent().getBooleanExtra("startNewGame", true);
+        if (startNewGame) {
+            mainGame.startNewGame();
+        } else {
+            restoreGameState(); // 恢复游戏状态
+        }
+
+        // 设置分数显示
+        TextView tvBestScore = findViewById(R.id.tvBestScore);
+//        TextView tvScore = findViewById(R.id.tvScore);
+        mainGame.updateBestScore(tvBestScore);
+        mainGame.updateScore(tvScore);
+
         // 初始化返回按钮
-        ImageButton backButton = findViewById(R.id.button_back_to_main);
+        ImageView backButton = findViewById(R.id.ic_arrow_back);
         backButton.setOnClickListener(v -> {
             // 返回主界面
             Intent intent = new Intent(GameActivity.this, MainActivity.class);
@@ -45,24 +69,7 @@ public class GameActivity extends AppCompatActivity {
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 
-        // 初始化 UI
-        gridLayout = findViewById(R.id.gridLayout);
-        initGrid();
-        mainGame = new MainGame(this, gridTextViews);
-
-        TextView tvBestScore = findViewById(R.id.tvBestScore);
-        TextView tvScore = findViewById(R.id.tvScore);
-        mainGame.updateBestScore(tvBestScore);
-        mainGame.updateScore(tvScore);
-
-        // 检查是否从 MainActivity 传递了“startNewGame”标记
-        boolean startNewGame = getIntent().getBooleanExtra("startNewGame", true);
-        if (startNewGame) {
-            mainGame.startNewGame();
-        } else {
-            mainGame.restorePreviousState(); // 恢复游戏状态
-        }
-
+        // 开关控件切换陀螺仪模式
         Switch switchControlMode = findViewById(R.id.switchControlMode);
         switchControlMode.setOnCheckedChangeListener((buttonView, isChecked) -> {
             isGyroscopeMode = isChecked;
@@ -75,9 +82,11 @@ public class GameActivity extends AppCompatActivity {
             }
         });
 
+        // 新游戏和撤销按钮的点击事件
         findViewById(R.id.btnNewGame).setOnClickListener(v -> mainGame.startNewGame());
         findViewById(R.id.btnUndo).setOnClickListener(v -> mainGame.restorePreviousState());
 
+        // 初始化手势检测
         gestureDetector = new GestureDetector(this, new GestureListener());
     }
 
@@ -89,6 +98,7 @@ public class GameActivity extends AppCompatActivity {
         return super.onTouchEvent(event);
     }
 
+    // 初始化游戏网格
     private void initGrid() {
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
@@ -169,8 +179,7 @@ public class GameActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onAccuracyChanged(Sensor sensor, int accuracy) {
-        }
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {}
     };
 
     private void startGyroscopeControl() {
@@ -192,7 +201,38 @@ public class GameActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
+        saveGameState();
         stopGyroscopeControl();
     }
 
+    // 保存游戏状态
+    private void saveGameState() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+
+        editor.putInt("score", mainGame.getScore());
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                editor.putInt("grid_" + i + "_" + j, mainGame.getGridValue(i, j));
+            }
+        }
+        editor.apply();
+    }
+
+    // 恢复游戏状态
+    private void restoreGameState() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+
+        int score = prefs.getInt("score", 0);
+        mainGame.setScore(score);
+
+        int[][] grid = new int[4][4];
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                grid[i][j] = prefs.getInt("grid_" + i + "_" + j, 0);
+            }
+        }
+        mainGame.setGrid(grid);
+        mainGame.updateGridUI();
+    }
 }
