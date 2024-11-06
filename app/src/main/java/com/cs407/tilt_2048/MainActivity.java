@@ -14,6 +14,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.content.Intent;
+import android.app.AlertDialog;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -44,7 +45,12 @@ public class MainActivity extends AppCompatActivity {
 
         // Quit
         findViewById(R.id.button_quit).setOnClickListener(v -> {
-            finishAffinity();
+            new AlertDialog.Builder(MainActivity.this)
+                    .setTitle("Quit")
+                    .setMessage("Are you sure you want to quit?")
+                    .setPositiveButton("Yes", (dialog, which) -> finishAffinity())
+                    .setNegativeButton("No", null)
+                    .show();
         });
     }
 

@@ -23,9 +23,9 @@
     <color name="text_light">#776E65</color> <!-- for light-colored cells -->
     <color name="text_dark">#F9F6F2</color> <!-- for dark-colored cells -->
 
-    <color name="light_yellow">#FFFFE0</color> <!-- 浅黄色 -->
-    <color name="dark_green">#006400</color> <!-- 深绿色 -->
-    <color name="orange">#FFA500</color> <!-- 橙色 -->
+    <color name="light_yellow">#FFFFE0</color>
+    <color name="dark_orange">#f68761</color>
+    <color name="orange">#FFA500</color>
     <color name="gray">#808080</color>
-    <color name="blue">#0000FF</color>
+    <color name="blue">#168ee1</color>
 </resources>
