@@ -1,5 +1,6 @@
 package com.cs407.tilt_2048;
 
+import android.widget.Button;
 import android.widget.Switch;
 import android.content.Context;
 import android.os.Bundle;
@@ -18,10 +19,32 @@ import android.app.AlertDialog;
 
 public class MainActivity extends AppCompatActivity {
 
+    private TextView welcomeText;
+    private Button logoutButton;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        welcomeText = findViewById(R.id.welcomeText);
+        logoutButton = findViewById(R.id.logoutButton);
+
+        // Retrieve the username from the Intent
+        String username = getIntent().getStringExtra("username");
+        if (username != null) {
+            // Set the welcome message with the username
+            welcomeText.setText("Welcome, " + username + "!");
+        }
+
+        logoutButton.setOnClickListener(v -> {
+            // Clear any session data if necessary (optional)
+
+            // Navigate back to LoginActivity
+            Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK); // Clear back stack
+            startActivity(intent);
+            finish(); // Close MainActivity
+        });
 
         // New Game
         findViewById(R.id.button_new_game).setOnClickListener(v -> {
