@@ -18,7 +18,10 @@
         android:layout_height="30dp"
         android:layout_alignParentEnd="true"
         android:layout_margin="16dp"
-        android:src="@drawable/ic_user" />
+        android:src="@drawable/ic_user"
+        android:contentDescription="Modify Username"
+        android:clickable="true"
+        android:focusable="true"/>
 
     <!-- 2048 Tilt -->
 
