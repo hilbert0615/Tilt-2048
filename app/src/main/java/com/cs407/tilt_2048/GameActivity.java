@@ -24,11 +24,17 @@ public class GameActivity extends AppCompatActivity {
     private SensorManager sensorManager;
     private Sensor accelerometer;
     private boolean isGyroscopeMode = false;
-    private static final long SWIPE_COOLDOWN = 500; // 滑动冷却时间，单位毫秒
+
     private long lastSwipeTime = 0; // 上一次滑动的时间
-    private static final float TILT_THRESHOLD = 5.0f; // 初始倾斜触发阈值
+    private long lastTimestamp = 0L; // 上一次事件的时间戳
+
+    private static final float TILT_THRESHOLD = 6.0f; // 倾斜触发阈值，适当提高
+    private static final long SWIPE_COOLDOWN = 500;  // 滑动冷却时间，单位毫秒
 
     private static final String PREFS_NAME = "GamePrefs";
+
+    private TextView tvScore;
+    private TextView tvBestScore;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,7 +45,7 @@ public class GameActivity extends AppCompatActivity {
         gridLayout = findViewById(R.id.gridLayout);
         initGrid();
 
-        TextView tvScore = findViewById(R.id.tvScore);
+        tvScore = findViewById(R.id.tvScore);
         mainGame = new MainGame(this, gridTextViews, tvScore);
 
         boolean startNewGame = getIntent().getBooleanExtra("startNewGame", true);
@@ -66,12 +72,15 @@ public class GameActivity extends AppCompatActivity {
 
         // 初始化传感器
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+//        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
+
 
         // 开关控件切换陀螺仪模式
         Switch switchControlMode = findViewById(R.id.switchControlMode);
         switchControlMode.setOnCheckedChangeListener((buttonView, isChecked) -> {
             isGyroscopeMode = isChecked;
+            switchControlMode.setChecked(isGyroscopeMode);
             switchControlMode.setText(isGyroscopeMode ? "Gyroscope Enabled" : "Enable Gyroscope");
 
             if (isGyroscopeMode) {
@@ -144,41 +153,50 @@ public class GameActivity extends AppCompatActivity {
         }
     }
 
-    // 传感器监听器
     private SensorEventListener sensorEventListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
             if (isGyroscopeMode) {
+                // 检查传感器是否初始化，防止 null 或未注册的异常
+                if (event.sensor.getType() != Sensor.TYPE_GRAVITY) return;
+
+                float gravityX = event.values[0];
+                float gravityY = event.values[1];
+
+                // 时间差计算，防止频繁触发
                 long currentTime = System.currentTimeMillis();
-                if (currentTime - lastSwipeTime < SWIPE_COOLDOWN) {
-                    return;
+                if (lastTimestamp != 0L) {
+                    if (currentTime - lastTimestamp < SWIPE_COOLDOWN) {
+                        return; // 时间间隔小于冷却时间，跳过
+                    }
                 }
+                lastTimestamp = currentTime;
 
-                float x = event.values[0];
-                float y = event.values[1];
-
-                // 设定一个触发倾斜阈值
-                if (Math.abs(x) > TILT_THRESHOLD || Math.abs(y) > TILT_THRESHOLD) {
-                    if (Math.abs(x) > Math.abs(y)) {
-                        if (x > TILT_THRESHOLD) {
+                // 根据重力方向和阈值触发滑动操作
+                if (Math.abs(gravityX) > TILT_THRESHOLD || Math.abs(gravityY) > TILT_THRESHOLD) {
+                    if (Math.abs(gravityX) > Math.abs(gravityY)) {
+                        // 水平方向
+                        if (gravityX > TILT_THRESHOLD) {
                             mainGame.onSwipeLeft();
-                        } else if (x < -TILT_THRESHOLD) {
+                        } else if (gravityX < -TILT_THRESHOLD) {
                             mainGame.onSwipeRight();
                         }
                     } else {
-                        if (y > TILT_THRESHOLD) {
+                        // 垂直方向
+                        if (gravityY > TILT_THRESHOLD) {
                             mainGame.onSwipeUp();
-                        } else if (y < -TILT_THRESHOLD) {
+                        } else if (gravityY < -TILT_THRESHOLD) {
                             mainGame.onSwipeDown();
                         }
                     }
-                    lastSwipeTime = currentTime;
                 }
             }
         }
 
         @Override
-        public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+            // 不需要处理
+        }
     };
 
     private void startGyroscopeControl() {
@@ -192,6 +210,7 @@ public class GameActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        lastTimestamp = 0L; // 重置时间戳
         if (isGyroscopeMode) {
             startGyroscopeControl();
         }
@@ -200,9 +219,11 @@ public class GameActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
+        lastTimestamp = 0L; // 重置时间戳
         saveGameState();
         stopGyroscopeControl();
     }
+
 
     // 保存游戏状态
     private void saveGameState() {
@@ -233,5 +254,12 @@ public class GameActivity extends AppCompatActivity {
         }
         mainGame.setGrid(grid);
         mainGame.updateGridUI();
+        mainGame.updateScore(tvScore);
+        mainGame.updateBestScore(tvBestScore);
     }
+
+    private boolean isGravitySensorEvent(SensorEvent event) {
+        return event.sensor != null && event.sensor.getType() == Sensor.TYPE_GRAVITY;
+    }
+
 }
