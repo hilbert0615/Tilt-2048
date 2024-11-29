@@ -42,7 +42,6 @@ public class GameActivity extends AppCompatActivity {
         TextView tvScore = findViewById(R.id.tvScore);
         mainGame = new MainGame(this, gridTextViews, tvScore);
 
-        // 检查是否从 MainActivity 传递了“startNewGame”标记
         boolean startNewGame = getIntent().getBooleanExtra("startNewGame", true);
         if (startNewGame) {
             mainGame.startNewGame();

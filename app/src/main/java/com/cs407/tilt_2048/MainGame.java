@@ -48,6 +48,7 @@ public class MainGame {
         addRandomNumber();
         addRandomNumber();
         updateGridUI();
+        backupGameState();
     }
 
     public void saveBestScore() {
@@ -165,11 +166,26 @@ public class MainGame {
     }
 
     public void restorePreviousState() {
+        boolean hasNonZero = false;
+        for (int i = 0; i < 4 && !hasNonZero; i++) {
+            for (int j = 0; j < 4; j++) {
+                if (previousGrid[i][j] != 0) {
+                    hasNonZero = true; // 检查备份状态是否存在有效数字
+                    break;
+                }
+            }
+        }
+
+        if (!hasNonZero) {
+            return; // 如果备份状态为空，则不进行恢复
+        }
+
         for (int i = 0; i < 4; i++) {
             System.arraycopy(previousGrid[i], 0, grid[i], 0, 4);
         }
         score = previousScore;
         updateGridUI();
+        updateScore(tvScore);
     }
 
     public void animateGridChange(String direction, ArrayList<int[]> changes) {
