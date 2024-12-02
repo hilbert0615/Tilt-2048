@@ -381,14 +381,28 @@ public class MainGame {
     }
 
     private void showGameOverDialog() {
+        // 保存分数逻辑
+        SharedPreferences userPrefs = context.getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
+        SharedPreferences recordPrefs = context.getSharedPreferences("UserRecords", Context.MODE_PRIVATE);
+        String currentUser = userPrefs.getString("current_user", null);
+
+        if (currentUser != null) {
+            RankActivity.saveUserScore(currentUser, score, recordPrefs);
+        }
+
+        // 显示游戏结束对话框
         new AlertDialog.Builder(context)
                 .setTitle("Game Over")
                 .setMessage("No more moves available!")
                 .setPositiveButton("New Game", (dialog, which) -> startNewGame())
                 .setNegativeButton("Exit", (dialog, which) -> {
-                    // 将结束游戏的逻辑放到MainActivity中调用
+                    // 返回主界面
+                    if (context instanceof AppCompatActivity) {
+                        ((AppCompatActivity) context).finish();
+                    }
                 })
                 .setCancelable(false)
                 .show();
     }
+
 }
