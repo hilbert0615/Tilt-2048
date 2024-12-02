@@ -17,7 +17,6 @@
             android:layout_height="24dp"
             android:src="@drawable/ic_arrow_back"
             android:contentDescription="Back"
-            android:tint="#333333"
             android:layout_gravity="start" />
 
         <!-- User Photo -->
@@ -68,25 +67,29 @@
             android:textSize="16sp"
             android:layout_marginBottom="22dp" />
 
-        <!-- Birthday -->
+        <!-- Location -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Birthday:"
+            android:text="Location:"
             android:textSize="16sp"
             android:textStyle="bold"
             android:layout_marginBottom="8dp" />
 
         <EditText
-            android:id="@+id/et_birthday"
+            android:id="@+id/et_location"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@android:color/darker_gray"
             android:padding="12dp"
-            android:hint="Enter your birthday (e.g., 1990/01/01)"
-            android:inputType="date"
+            android:hint="City, Province, Country"
+            android:inputType="textMultiLine"
+            android:gravity="start|top"
+            android:scrollHorizontally="false"
             android:textSize="16sp"
-            android:layout_marginBottom="22dp" />
+            android:layout_marginBottom="22dp"
+            android:focusable="false"
+            android:clickable="false" />
 
         <!-- User Description -->
         <TextView

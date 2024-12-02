@@ -49,6 +49,7 @@ public class MainGame {
         addRandomNumber();
         updateGridUI();
         backupGameState();
+        updateScore(tvScore);
     }
 
     public void saveBestScore() {

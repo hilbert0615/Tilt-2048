@@ -8,16 +8,31 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import android.widget.TextView;
+import android.provider.Settings;
+import android.net.Uri;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 public class MainActivity extends AppCompatActivity {
+
+    private static final int REQUEST_LOCATION_PERMISSION = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // 设置 GPS 图标点击事件
+        ImageView locationIcon = findViewById(R.id.icon_location);
+        locationIcon.setOnClickListener(v -> handleLocationIconClick());
 
         // New Game
         findViewById(R.id.button_new_game).setOnClickListener(v -> {
@@ -31,6 +46,18 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(MainActivity.this, GameActivity.class);
             intent.putExtra("startNewGame", false);
             startActivity(intent);
+        });
+
+        // Record
+        findViewById(R.id.button_rank).setOnClickListener(v -> {
+            if (isUserLoggedIn()) {
+                // 用户已登录，进入 RankActivity
+                Intent intent = new Intent(MainActivity.this, RankActivity.class);
+                startActivity(intent);
+            } else {
+                // 用户未登录，显示提示
+                showLoginRequiredAlert();
+            }
         });
 
         // About
@@ -151,4 +178,65 @@ public class MainActivity extends AppCompatActivity {
         // Show dialog
         dialog.show();
     }
+
+    private void handleLocationIconClick() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            // 如果未授予权限，请求权限
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    REQUEST_LOCATION_PERMISSION);
+        } else {
+            // 如果权限已授予，提示用户是否跳转到设置页面修改权限
+            showSettingsDialog();
+        }
+    }
+
+    private void showSettingsDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Modify Location Permission")
+                .setMessage("Location permission is already granted. Do you want to open settings to modify permissions?")
+                .setPositiveButton("Open Settings", (dialog, which) -> openAppSettings())
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void openAppSettings() {
+        // 跳转到应用的设置页面
+        Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+        Uri uri = Uri.fromParts("package", getPackageName(), null);
+        intent.setData(uri);
+        startActivity(intent);
+
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == REQUEST_LOCATION_PERMISSION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // 用户授予权限
+                Toast.makeText(this, "Location permission granted", Toast.LENGTH_SHORT).show();
+            } else {
+                // 用户拒绝权限
+                Toast.makeText(this, "Location permission denied", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private boolean isUserLoggedIn() {
+        SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
+        String currentUser = prefs.getString("current_user", null);
+        return currentUser != null;
+    }
+
+    private void showLoginRequiredAlert() {
+        new AlertDialog.Builder(this)
+                .setTitle("Login Required")
+                .setMessage("You must log in to access your record.")
+                .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                .show();
+    }
+
 }

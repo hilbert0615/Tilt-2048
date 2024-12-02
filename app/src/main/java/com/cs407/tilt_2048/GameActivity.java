@@ -46,6 +46,8 @@ public class GameActivity extends AppCompatActivity {
         initGrid();
 
         tvScore = findViewById(R.id.tvScore);
+        tvBestScore = findViewById(R.id.tvBestScore);
+
         mainGame = new MainGame(this, gridTextViews, tvScore);
 
         boolean startNewGame = getIntent().getBooleanExtra("startNewGame", true);
