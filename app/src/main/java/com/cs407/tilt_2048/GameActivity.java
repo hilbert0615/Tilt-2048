@@ -57,7 +57,7 @@ public class GameActivity extends AppCompatActivity {
         if (startNewGame) {
             mainGame.startNewGame();
         } else {
-            restoreGameState(); // 恢复游戏状态
+            restoreGameState();
         }
 
         // 设置分数显示
