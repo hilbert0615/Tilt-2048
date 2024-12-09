@@ -28,20 +28,35 @@ public class MainGame {
     private final int[][] previousGrid = new int[4][4];
     private int previousScore = 0;
 
-    private static final String PREFS_NAME = "GamePrefs";
-    private static final String KEY_BEST_SCORE = "BestScore";
+//    private static final String PREFS_NAME = "GamePrefs";
+//    private static final String KEY_BEST_SCORE = "BestScore";
 
-    public MainGame(Context context, TextView[][] gridTextViews, TextView tvScore) {
+    private final String currentUserPrefsName;
+
+    public MainGame(Context context, TextView[][] gridTextViews, TextView tvScore, String currentUserPrefsName) {
         this.context = context;
         this.gridTextViews = gridTextViews;
         this.tvScore = tvScore;
+        this.currentUserPrefsName = currentUserPrefsName;
         loadBestScore();
     }
 
     public void startNewGame() {
+        SharedPreferences recordsPrefs = context.getSharedPreferences("UserRecords", Context.MODE_PRIVATE);
+        int recordBestScore = getHighestScoreFromRecords(currentUserPrefsName, recordsPrefs);
+
+        if (recordBestScore > bestScore) {
+            bestScore = recordBestScore; // 确保最高分一致
+        }
+
         if (score > bestScore) {
             bestScore = score;
             saveBestScore();
+
+//            SharedPreferences prefs = context.getSharedPreferences("UserRecords", Context.MODE_PRIVATE);
+//            RankActivity.saveUserScore(currentUserPrefsName, bestScore, prefs);
+            RankActivity.saveUserScore(currentUserPrefsName, bestScore, recordsPrefs);
+
         }
         score = 0;
         resetGrid();
@@ -52,16 +67,29 @@ public class MainGame {
         updateScore(tvScore);
     }
 
+    private int getHighestScoreFromRecords(String username, SharedPreferences prefs) {
+        int highestScore = 0;
+        for (int i = 1; i <= 20; i++) {
+            int score = prefs.getInt(username + "_score_" + i, 0);
+            if (score > highestScore) {
+                highestScore = score;
+            }
+        }
+        return highestScore;
+    }
+
+
     public void saveBestScore() {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        SharedPreferences prefs = context.getSharedPreferences(currentUserPrefsName, Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
-        editor.putInt(KEY_BEST_SCORE, bestScore);
+        editor.putInt("best_score", bestScore);
         editor.apply();
     }
 
     public void loadBestScore() {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        bestScore = prefs.getInt(KEY_BEST_SCORE, 0);
+        SharedPreferences prefs = context.getSharedPreferences(currentUserPrefsName, Context.MODE_PRIVATE);
+//        bestScore = prefs.getInt(KEY_BEST_SCORE, 0);
+        bestScore = prefs.getInt("best_score", 0);
     }
 
     public void updateGridUI() {
@@ -100,6 +128,15 @@ public class MainGame {
     public void setScore(int score) {
         this.score = score;
     }
+
+    public int getBestScore() {
+        return bestScore; // 返回当前的最高分
+    }
+
+    public void setBestScore(int bestScore) {
+        this.bestScore = bestScore; // 更新最高分
+    }
+
 
     // 获取网格数据
     public int getGridValue(int row, int col) {

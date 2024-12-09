@@ -31,7 +31,8 @@ public class GameActivity extends AppCompatActivity {
     private static final float TILT_THRESHOLD = 6.0f; // 倾斜触发阈值，适当提高
     private static final long SWIPE_COOLDOWN = 500;  // 滑动冷却时间，单位毫秒
 
-    private static final String PREFS_NAME = "GamePrefs";
+//    private static final String PREFS_NAME = "GamePrefs";
+    private String currentUserPrefsName;
 
     private TextView tvScore;
     private TextView tvBestScore;
@@ -48,7 +49,9 @@ public class GameActivity extends AppCompatActivity {
         tvScore = findViewById(R.id.tvScore);
         tvBestScore = findViewById(R.id.tvBestScore);
 
-        mainGame = new MainGame(this, gridTextViews, tvScore);
+        currentUserPrefsName = getCurrentUserName();
+
+        mainGame = new MainGame(this, gridTextViews, tvScore, currentUserPrefsName);
 
         boolean startNewGame = getIntent().getBooleanExtra("startNewGame", true);
         if (startNewGame) {
@@ -227,11 +230,28 @@ public class GameActivity extends AppCompatActivity {
     }
 
 
-    // 保存游戏状态
-    private void saveGameState() {
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
+//    // 保存游戏状态
+//    private void saveGameState() {
+//        SharedPreferences prefs = getSharedPreferences(currentUserPrefsName, MODE_PRIVATE);
+//        SharedPreferences.Editor editor = prefs.edit();
+//
+//        editor.putInt("score", mainGame.getScore());
+//        editor.putInt("best_score", mainGame.getBestScore());
+//
+//        for (int i = 0; i < 4; i++) {
+//            for (int j = 0; j < 4; j++) {
+//                editor.putInt("grid_" + i + "_" + j, mainGame.getGridValue(i, j));
+//            }
+//        }
+//        editor.apply();
+//    }
 
+    private void saveGameState() {
+        SharedPreferences prefs = getSharedPreferences("UserRecords", MODE_PRIVATE);
+
+        // 保存当前游戏状态
+        SharedPreferences gamePrefs = getSharedPreferences(currentUserPrefsName, MODE_PRIVATE);
+        SharedPreferences.Editor editor = gamePrefs.edit();
         editor.putInt("score", mainGame.getScore());
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
@@ -239,14 +259,29 @@ public class GameActivity extends AppCompatActivity {
             }
         }
         editor.apply();
+
+        // 更新最高分和分数记录
+        int score = mainGame.getScore();
+        RankActivity.saveUserScore(getCurrentUserName(), score, prefs);
+    }
+
+    private String getCurrentUserName() {
+        SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
+        return prefs.getString("current_user", "default_user");
     }
 
     // 恢复游戏状态
     private void restoreGameState() {
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        SharedPreferences prefs = getSharedPreferences(currentUserPrefsName, MODE_PRIVATE);
 
         int score = prefs.getInt("score", 0);
-        mainGame.setScore(score);
+        int bestScore = prefs.getInt("best_score", 0);
+
+        // 从 Record 中获取最高分
+        SharedPreferences recordsPrefs = getSharedPreferences("UserRecords", MODE_PRIVATE);
+        String username = getCurrentUserName();
+        int newBestScore = getHighestScoreFromRecords(username, recordsPrefs);
+        mainGame.setBestScore(newBestScore);
 
         int[][] grid = new int[4][4];
         for (int i = 0; i < 4; i++) {
@@ -254,10 +289,23 @@ public class GameActivity extends AppCompatActivity {
                 grid[i][j] = prefs.getInt("grid_" + i + "_" + j, 0);
             }
         }
+
         mainGame.setGrid(grid);
         mainGame.updateGridUI();
+
         mainGame.updateScore(tvScore);
         mainGame.updateBestScore(tvBestScore);
+    }
+
+    private int getHighestScoreFromRecords(String username, SharedPreferences prefs) {
+        int highestScore = 0;
+        for (int i = 1; i <= 20; i++) {
+            int score = prefs.getInt(username + "_score_" + i, 0);
+            if (score > highestScore) {
+                highestScore = score;
+            }
+        }
+        return highestScore;
     }
 
     private boolean isGravitySensorEvent(SensorEvent event) {

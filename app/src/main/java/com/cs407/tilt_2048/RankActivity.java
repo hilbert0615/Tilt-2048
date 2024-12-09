@@ -44,7 +44,7 @@ public class RankActivity extends AppCompatActivity {
         // 初始化 RecyclerView
         recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this)); // 垂直布局
-        recyclerView.setHasFixedSize(true); // 性能优化
+        recyclerView.setHasFixedSize(true);
 
         // 加载用户分数记录
         records = loadUserRecords(currentUser);
@@ -90,6 +90,11 @@ public class RankActivity extends AppCompatActivity {
             if (score > 0) {
                 scores.add(score);
             }
+        }
+
+        // 如果分数已经存在，则不重复保存
+        if (scores.contains(newScore)) {
+            return;
         }
 
         // 添加新分数
