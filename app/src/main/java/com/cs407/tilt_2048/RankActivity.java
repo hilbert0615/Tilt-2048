@@ -3,6 +3,7 @@ package com.cs407.tilt_2048;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.widget.ImageView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -30,6 +31,15 @@ public class RankActivity extends AppCompatActivity {
             promptLogin();
             return;
         }
+
+        // 初始化返回按钮
+        ImageView backButton = findViewById(R.id.ic_arrow_back);
+        backButton.setOnClickListener(v -> {
+            // 返回主界面
+            Intent intent = new Intent(RankActivity.this, MainActivity.class);
+            startActivity(intent);
+            finish();
+        });
 
         // 初始化 RecyclerView
         recyclerView = findViewById(R.id.recyclerView);
